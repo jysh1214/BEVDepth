@@ -1,8 +1,7 @@
 # Download the nuscenes data set and put them to '$PWD/data'.
 #   - v1.0-test_meta.tgz
 #   - v1.0-test_blobs.tgz
-#   - v1.0-trainval_meta.tgz
-#   - v1.0-trainval01_blobs.tgz
+#   - v1.0-mini.tgz
 #
 # Build the docker image:
 #   docker build -t bevdepth_image .
@@ -82,10 +81,10 @@ CMD ["/bin/sh"]
 # Prepare data:
 #   cd data
 #   mkdir nuscenes
-#   tar zxvf v1.0-test_meta.tgz
-#   tar zxvf v1.0-test_blobs.tgz
-#   tar zxvf v1.0-trainval_meta.tgz
-#   tar zxvf v1.0-trainval01_blobs.tgz
+#   tar zxvf v1.0-test_meta.tgz -C nuscenes
+#   tar zxvf v1.0-test_blobs.tgz -C nuscenes
+#   tar zxvf v1.0-mini.tgz -C nuscenes
+#   mv nuscenes/v1.0-mini nuscenes/v1.0-trainval
 #
 #   python3 scripts/gen_info.py
 
