@@ -1,6 +1,8 @@
 # Download the nuscenes data set and put them to '$PWD/data'.
 #   - v1.0-test_meta.tgz
 #   - v1.0-test_blobs.tgz
+#   - v1.0-trainval_meta.tgz
+#   - v1.0-trainval01_blobs.tgz
 #
 # Build the docker image:
 #   docker build -t bevdepth_image .
@@ -62,7 +64,7 @@ WORKDIR /home
 CMD ["/bin/sh"]
 
 # Activate Python virtual environment:
-#   source /pyvenv/bin/activate
+#   source /home/pyvenv/bin/activate
 
 # Install mmcv.
 # ENV MMCV_ROOT="/home/mmcv"
