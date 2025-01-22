@@ -8,6 +8,9 @@
 #
 # Run the container:
 #   docker run --name bevdepth_container --shm-size 64gb --gpus all --mount src=$PWD,target=/home/BEVDepth,type=bind -it bevdepth_image /bin/bash
+#
+# Attach the container:
+#   docker container attach bevdepth_container
 
 FROM nvidia/cuda:11.8.0-devel-ubuntu22.04
 
@@ -101,3 +104,5 @@ CMD ["/bin/sh"]
 #
 # Demo:
 #   python3 bevdepth/exps/nuscenes/mv/bev_depth_lss_r50_256x704_128x128_24e_2key.py --ckpt_path bev_depth_lss_r50_256x704_128x128_24e_2key.pth -e -b 1 --gpus 1
+#
+#   python3 bevdepth/exps/nuscenes/mv/bev_stereo_lss_r50_256x704_128x128_24e_2key.py --ckpt_path bev_stereo_lss_r50_256x704_128x128_24e_2key.pth -e -b 1 --gpus 1
