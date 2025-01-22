@@ -427,16 +427,16 @@ class BEVStereoLSSFPN(BaseLSSFPN):
             points = points.reshape(points.shape[0], -1, points.shape[-1])
             points[..., 2] = 1
             # Undo ida for key frame.
-            points = key_ida_mats.reshape(batch_size_with_num_cams, *
-                                          key_ida_mats.shape[2:]).inverse(
-                                          ).unsqueeze(1) @ points.unsqueeze(-1)
+            points = (key_ida_mats.reshape(batch_size_with_num_cams, *
+                                          key_ida_mats.shape[2:]).cpu().inverse(
+                                          ).cuda()).unsqueeze(1) @ points.unsqueeze(-1)
             # Convert points from pixel coord to key camera coord.
             points[..., :3, :] *= depth_sample.reshape(
                 batch_size_with_num_cams, -1, 1, 1)
             num_depth = frustum.shape[1]
-            points = (key_intrin_mats.reshape(
+            points = (((key_intrin_mats.reshape(
                 batch_size_with_num_cams, *
-                key_intrin_mats.shape[2:]).inverse().unsqueeze(1) @ points)
+                key_intrin_mats.shape[2:]).cpu().inverse()).cuda()).unsqueeze(1) @ points)
             points = (sensor2sensor_mats.reshape(
                 batch_size_with_num_cams, *
                 sensor2sensor_mats.shape[2:]).unsqueeze(1) @ points)
@@ -882,8 +882,8 @@ class BEVStereoLSSFPN(BaseLSSFPN):
         for ref_idx in range(num_sweeps):
             sensor2sensor_mats = list()
             for src_idx in range(num_sweeps):
-                ref2keysensor_mats = mats_dict[
-                    'sensor2sensor_mats'][:, ref_idx, ...].inverse()
+                ref2keysensor_mats = (mats_dict[
+                    'sensor2sensor_mats'][:, ref_idx, ...].cpu().inverse()).cuda()
                 key2srcsensor_mats = mats_dict['sensor2sensor_mats'][:,
                                                                      src_idx,
                                                                      ...]
