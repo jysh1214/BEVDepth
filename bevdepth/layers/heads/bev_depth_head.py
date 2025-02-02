@@ -2,12 +2,15 @@
 import numba
 import numpy as np
 import torch
-from mmdet3d.core import draw_heatmap_gaussian, gaussian_radius
-from mmdet3d.models import build_neck
+# from mmdet3d.core import draw_heatmap_gaussian, gaussian_radius
+from mmdet3d.models import draw_heatmap_gaussian, gaussian_radius
+# from mmdet3d.models import build_neck
 from mmdet3d.models.dense_heads.centerpoint_head import CenterHead, circle_nms
 from mmdet3d.models.utils import clip_sigmoid
-from mmdet.core import reduce_mean
-from mmdet.models import build_backbone
+# from mmdet.core import reduce_mean
+from mmdet.utils.dist_utils import reduce_mean
+# from mmdet.models import build_backbone
+from mmdet3d.registry import MODELS
 from torch.cuda.amp import autocast
 
 __all__ = ['BEVDepthHead']
@@ -127,11 +130,13 @@ class BEVDepthHead(CenterHead):
             loss_bbox=loss_bbox,
             separate_head=separate_head,
         )
-        self.trunk = build_backbone(bev_backbone_conf)
-        self.trunk.init_weights()
-        self.neck = build_neck(bev_neck_conf)
+        # self.trunk = build_backbone(bev_backbone_conf)
+        self.trunk = MODELS.build(bev_backbone_conf)
+        # self.trunk.init_weights()
+        # self.neck = build_neck(bev_neck_conf)
+        self.neck = MODELS.build(bev_neck_conf)
         self.neck.init_weights()
-        del self.trunk.maxpool
+        # del self.trunk.maxpool
         self.gaussian_overlap = gaussian_overlap
         self.min_radius = min_radius
         self.train_cfg = train_cfg

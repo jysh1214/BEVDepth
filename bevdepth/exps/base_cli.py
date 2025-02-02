@@ -15,7 +15,8 @@ def run_cli(model_class=BEVDepthLightningModel,
             use_ema=False,
             extra_trainer_config_args={}):
     parent_parser = ArgumentParser(add_help=False)
-    parent_parser = pl.Trainer.add_argparse_args(parent_parser)
+    # parent_parser = pl.Trainer.add_argparse_args(parent_parser)
+    parent_parser.add_argument('-g','--gpus', type=int)
     parent_parser.add_argument('-e',
                                '--evaluate',
                                dest='evaluate',
@@ -36,7 +37,7 @@ def run_cli(model_class=BEVDepthLightningModel,
     parser.set_defaults(profiler='simple',
                         deterministic=False,
                         max_epochs=extra_trainer_config_args.get('epochs', 24),
-                        accelerator='ddp',
+                        accelerator='gpu',
                         num_sanity_val_steps=0,
                         gradient_clip_val=5,
                         limit_val_batches=0,
@@ -54,7 +55,8 @@ def run_cli(model_class=BEVDepthLightningModel,
             len(train_dataloader.dataset) * args.max_epochs)
         trainer = pl.Trainer.from_argparse_args(args, callbacks=[ema_callback])
     else:
-        trainer = pl.Trainer.from_argparse_args(args)
+        # trainer = pl.Trainer.from_argparse_args(args)
+        trainer = pl.Trainer(accelerator="cpu")
     if args.evaluate:
         trainer.test(model, ckpt_path=args.ckpt_path)
     elif args.predict:

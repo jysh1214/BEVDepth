@@ -18,12 +18,179 @@ from bevdepth.evaluators.det_evaluators import DetNuscEvaluator
 from bevdepth.models.base_bev_depth import BaseBEVDepth
 from bevdepth.utils.torch_dist import all_gather_object, get_rank, synchronize
 
+from mmdet3d.registry import MODELS 
+
+import torch.nn as nn
+from mmdet3d.registry import MODELS
+import torchvision.models as models
+
+@MODELS.register_module()
+class ResNet(nn.Module):
+    def __init__(self, 
+            in_channels=10,
+            depth=18,
+            num_stages=3,
+            strides=(1, 2, 2),
+            dilations=(1, 1, 1),
+            out_indices=[0, 1, 2],
+            norm_eval=False,
+            base_channels=20,
+            init_cfg=dict(type='Pretrained', checkpoint='torchvision://resnet50'),
+            frozen_stages=0,
+    ):
+        super().__init__()
+        self.model = models.resnet50()
+        self.model.eval()
+    def forward(self, x):
+        return self.model(x)
+
+
+def gaussian_focal_loss(pred, gaussian_target, alpha=2.0, gamma=4.0):
+    """`Focal Loss <https://arxiv.org/abs/1708.02002>`_ for targets in gaussian
+    distribution.
+
+    Args:
+        pred (torch.Tensor): The prediction.
+        gaussian_target (torch.Tensor): The learning target of the prediction
+            in gaussian distribution.
+        alpha (float, optional): A balanced form for Focal Loss.
+            Defaults to 2.0.
+        gamma (float, optional): The gamma for calculating the modulating
+            factor. Defaults to 4.0.
+    """
+    eps = 1e-12
+    pos_weights = gaussian_target.eq(1)
+    neg_weights = (1 - gaussian_target).pow(gamma)
+    pos_loss = -(pred + eps).log() * (1 - pred).pow(alpha) * pos_weights
+    neg_loss = -(1 - pred + eps).log() * pred.pow(alpha) * neg_weights
+    return pos_loss + neg_loss
+
+
+def l1_loss(pred, target):
+    """L1 loss.
+
+    Args:
+        pred (torch.Tensor): The prediction.
+        target (torch.Tensor): The learning target of the prediction.
+
+    Returns:
+        torch.Tensor: Calculated loss
+    """
+    assert pred.size() == target.size() and target.numel() > 0
+    loss = torch.abs(pred - target)
+    return loss
+
+@MODELS.register_module()
+class L1Loss(nn.Module):
+    """L1 loss.
+
+    Args:
+        reduction (str, optional): The method to reduce the loss.
+            Options are "none", "mean" and "sum".
+        loss_weight (float, optional): The weight of loss.
+    """
+
+    def __init__(self, reduction='mean', loss_weight=1.0):
+        super(L1Loss, self).__init__()
+        self.reduction = reduction
+        self.loss_weight = loss_weight
+
+    def forward(self,
+                pred,
+                target,
+                weight=None,
+                avg_factor=None,
+                reduction_override=None):
+        """Forward function.
+
+        Args:
+            pred (torch.Tensor): The prediction.
+            target (torch.Tensor): The learning target of the prediction.
+            weight (torch.Tensor, optional): The weight of loss for each
+                prediction. Defaults to None.
+            avg_factor (int, optional): Average factor that is used to average
+                the loss. Defaults to None.
+            reduction_override (str, optional): The reduction method used to
+                override the original reduction method of the loss.
+                Defaults to None.
+        """
+        assert reduction_override in (None, 'none', 'mean', 'sum')
+        reduction = (
+            reduction_override if reduction_override else self.reduction)
+        loss_bbox = self.loss_weight * l1_loss(
+            pred, target, weight, reduction=reduction, avg_factor=avg_factor)
+        return loss_bbox
+
+@MODELS.register_module()
+class GaussianFocalLoss(nn.Module):
+    """GaussianFocalLoss is a variant of focal loss.
+
+    More details can be found in the `paper
+    <https://arxiv.org/abs/1808.01244>`_
+    Code is modified from `kp_utils.py
+    <https://github.com/princeton-vl/CornerNet/blob/master/models/py_utils/kp_utils.py#L152>`_  # noqa: E501
+    Please notice that the target in GaussianFocalLoss is a gaussian heatmap,
+    not 0/1 binary target.
+
+    Args:
+        alpha (float): Power of prediction.
+        gamma (float): Power of target for negtive samples.
+        reduction (str): Options are "none", "mean" and "sum".
+        loss_weight (float): Loss weight of current loss.
+    """
+
+    def __init__(self,
+                 alpha=2.0,
+                 gamma=4.0,
+                 reduction='mean',
+                 loss_weight=1.0):
+        super(GaussianFocalLoss, self).__init__()
+        self.alpha = alpha
+        self.gamma = gamma
+        self.reduction = reduction
+        self.loss_weight = loss_weight
+
+    def forward(self,
+                pred,
+                target,
+                weight=None,
+                avg_factor=None,
+                reduction_override=None):
+        """Forward function.
+
+        Args:
+            pred (torch.Tensor): The prediction.
+            target (torch.Tensor): The learning target of the prediction
+                in gaussian distribution.
+            weight (torch.Tensor, optional): The weight of loss for each
+                prediction. Defaults to None.
+            avg_factor (int, optional): Average factor that is used to average
+                the loss. Defaults to None.
+            reduction_override (str, optional): The reduction method used to
+                override the original reduction method of the loss.
+                Defaults to None.
+        """
+        assert reduction_override in (None, 'none', 'mean', 'sum')
+        reduction = (
+            reduction_override if reduction_override else self.reduction)
+        loss_reg = self.loss_weight * gaussian_focal_loss(
+            pred,
+            target,
+            weight,
+            alpha=self.alpha,
+            gamma=self.gamma,
+            reduction=reduction,
+            avg_factor=avg_factor)
+        return loss_reg
+
+
 H = 900
 W = 1600
 final_dim = (256, 704)
 img_conf = dict(img_mean=[123.675, 116.28, 103.53],
                 img_std=[58.395, 57.12, 57.375],
                 to_rgb=True)
+
 
 backbone_conf = {
     'x_bound': [-51.2, 51.2, 0.8],
@@ -48,9 +215,9 @@ backbone_conf = {
     'img_neck_conf':
     dict(
         type='SECONDFPN',
-        in_channels=[256, 512, 1024, 2048],
-        upsample_strides=[0.25, 0.5, 1, 2],
-        out_channels=[128, 128, 128, 128],
+        # in_channels=[256, 512, 1024, 2048],
+        # upsample_strides=[0.25, 0.5, 1, 2],
+        # out_channels=[128, 128, 128, 128],
     ),
     'depth_net_conf':
     dict(in_channels=512, mid_channels=512)
@@ -209,7 +376,7 @@ class BEVDepthLightningModel(LightningModule):
         self.head_conf = head_conf
         self.ida_aug_conf = ida_aug_conf
         self.bda_aug_conf = bda_aug_conf
-        mmcv.mkdir_or_exist(default_root_dir)
+        # mmcv.mkdir_or_exist(default_root_dir)
         self.default_root_dir = default_root_dir
         self.evaluator = DetNuscEvaluator(class_names=self.class_names,
                                           output_dir=self.default_root_dir)
@@ -352,23 +519,24 @@ class BEVDepthLightningModel(LightningModule):
         if get_rank() == 0:
             self.evaluator.evaluate(all_pred_results, all_img_metas)
 
-    def test_epoch_end(self, test_step_outputs):
-        all_pred_results = list()
-        all_img_metas = list()
-        for test_step_output in test_step_outputs:
-            for i in range(len(test_step_output)):
-                all_pred_results.append(test_step_output[i][:3])
-                all_img_metas.append(test_step_output[i][3])
-        synchronize()
-        # TODO: Change another way.
-        dataset_length = len(self.val_dataloader().dataset)
-        all_pred_results = sum(
-            map(list, zip(*all_gather_object(all_pred_results))),
-            [])[:dataset_length]
-        all_img_metas = sum(map(list, zip(*all_gather_object(all_img_metas))),
-                            [])[:dataset_length]
-        if get_rank() == 0:
-            self.evaluator.evaluate(all_pred_results, all_img_metas)
+    # See: https://github.com/Lightning-AI/lightning/pull/16520
+    # def test_epoch_end(self, test_step_outputs):
+    #     all_pred_results = list()
+    #     all_img_metas = list()
+    #     for test_step_output in test_step_outputs:
+    #         for i in range(len(test_step_output)):
+    #             all_pred_results.append(test_step_output[i][:3])
+    #             all_img_metas.append(test_step_output[i][3])
+    #     synchronize()
+    #     # TODO: Change another way.
+    #     dataset_length = len(self.val_dataloader().dataset)
+    #     all_pred_results = sum(
+    #         map(list, zip(*all_gather_object(all_pred_results))),
+    #         [])[:dataset_length]
+    #     all_img_metas = sum(map(list, zip(*all_gather_object(all_img_metas))),
+    #                         [])[:dataset_length]
+    #     if get_rank() == 0:
+    #         self.evaluator.evaluate(all_pred_results, all_img_metas)
 
     def configure_optimizers(self):
         lr = self.basic_lr_per_img * \

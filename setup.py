@@ -57,19 +57,19 @@ setup(
         'Operating System :: OS Independent',
     ],
     install_requires=[],
-    ext_modules=[
-        make_cuda_ext(
-            name='voxel_pooling_train_ext',
-            module='bevdepth.ops.voxel_pooling_train',
-            sources=['src/voxel_pooling_train_forward.cpp'],
-            sources_cuda=['src/voxel_pooling_train_forward_cuda.cu'],
-        ),
-        make_cuda_ext(
-            name='voxel_pooling_inference_ext',
-            module='bevdepth.ops.voxel_pooling_inference',
-            sources=['src/voxel_pooling_inference_forward.cpp'],
-            sources_cuda=['src/voxel_pooling_inference_forward_cuda.cu'],
-        ),
-    ],
+    # ext_modules=[
+    #     make_cuda_ext(
+    #         name='voxel_pooling_train_ext',
+    #         module='bevdepth.ops.voxel_pooling_train',
+    #         sources=['src/voxel_pooling_train_forward.cpp'],
+    #         sources_cuda=['src/voxel_pooling_train_forward_cuda.cu'],
+    #     ),
+    #     make_cuda_ext(
+    #         name='voxel_pooling_inference_ext',
+    #         module='bevdepth.ops.voxel_pooling_inference',
+    #         sources=['src/voxel_pooling_inference_forward.cpp'],
+    #         sources_cuda=['src/voxel_pooling_inference_forward_cuda.cu'],
+    #     ),
+    # ],
     cmdclass={'build_ext': BuildExtension},
 )

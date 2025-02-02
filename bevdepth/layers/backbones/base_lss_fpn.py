@@ -2,15 +2,18 @@
 import torch
 import torch.nn.functional as F
 from mmcv.cnn import build_conv_layer
-from mmdet3d.models import build_neck
-from mmdet.models import build_backbone
+# from mmdet3d.models import build_neck
+# from mmdet.models import build_backbone
+from mmdet3d.registry import MODELS 
 from mmdet.models.backbones.resnet import BasicBlock
 from torch import nn
 from torch.cuda.amp.autocast_mode import autocast
 
+from torch_mlir import torchscript
+
 try:
     from bevdepth.ops.voxel_pooling_inference import voxel_pooling_inference
-    from bevdepth.ops.voxel_pooling_train import voxel_pooling_train
+    # from bevdepth.ops.voxel_pooling_train import voxel_pooling_train
 except ImportError:
     print('Import VoxelPooling fail.')
 
@@ -364,12 +367,14 @@ class BaseLSSFPN(nn.Module):
         self.register_buffer('frustum', self.create_frustum())
         self.depth_channels, _, _, _ = self.frustum.shape
 
-        self.img_backbone = build_backbone(img_backbone_conf)
-        self.img_neck = build_neck(img_neck_conf)
+        # self.img_backbone = build_backbone(img_backbone_conf)
+        self.img_backbone = MODELS.build(img_backbone_conf)
+        # self.img_neck = build_neck(img_neck_conf)
+        self.img_neck = MODELS.build(img_neck_conf)
         self.depth_net = self._configure_depth_net(depth_net_conf)
 
         self.img_neck.init_weights()
-        self.img_backbone.init_weights()
+        # self.img_backbone.init_weights()
         self.use_da = use_da
         if self.use_da:
             self.depth_aggregation_net = self._configure_depth_aggregation_net(
@@ -470,13 +475,32 @@ class BaseLSSFPN(nn.Module):
                                       img_feats.shape[3])
         return img_feats
 
-    def _forward_depth_net(self, feat, mats_dict):
-        return self.depth_net(feat, mats_dict)
+    def _forward_depth_net(self, feat, 
+        mats_dict
+        # sensor2ego_mats,
+        # intrin_mats,
+        # ida_mats,
+        # sensor2sensor_mats,
+        # bda_mat,
+    ):
+        return self.depth_net(feat, 
+            mats_dict
+            # sensor2ego_mats,
+            # intrin_mats,
+            # ida_mats,
+            # sensor2sensor_mats,
+            # bda_mat,
+        )
 
     def _forward_single_sweep(self,
                               sweep_index,
                               sweep_imgs,
                               mats_dict,
+                            #   sensor2ego_mats,
+                            #   intrin_mats,
+                            #   ida_mats,
+                            #   sensor2sensor_mats,
+                            #   bda_mat,
                               is_return_depth=False):
         """Forward function for single sweep.
 
@@ -512,6 +536,11 @@ class BaseLSSFPN(nn.Module):
                                     source_features.shape[3],
                                     source_features.shape[4]),
             mats_dict,
+            # sensor2ego_mats,
+            # intrin_mats,
+            # ida_mats,
+            # sensor2sensor_mats,
+            # bda_mat,
         )
         depth = depth_feature[:, :self.depth_channels].softmax(
             dim=1, dtype=depth_feature.dtype)
@@ -520,6 +549,10 @@ class BaseLSSFPN(nn.Module):
             mats_dict['intrin_mats'][:, sweep_index, ...],
             mats_dict['ida_mats'][:, sweep_index, ...],
             mats_dict.get('bda_mat', None),
+            # sensor2ego_mats[:, sweep_index, ...],
+            # intrin_mats[:, sweep_index, ...],
+            # ida_mats[:, sweep_index, ...],
+            # bda_mat,
         )
         geom_xyz = ((geom_xyz - (self.voxel_coord - self.voxel_size / 2.0)) /
                     self.voxel_size).int()
@@ -559,8 +592,16 @@ class BaseLSSFPN(nn.Module):
     def forward(self,
                 sweep_imgs,
                 mats_dict,
+                # sensor2ego_mats,
+                # intrin_mats,
+                # ida_mats,
+                # sensor2sensor_mats,
+                # bda_mat,
                 timestamps=None,
-                is_return_depth=False):
+                is_return_depth=False
+    ):
+        # timestamps = None
+        # is_return_depth = False
         """Forward function.
 
         Args:
@@ -592,6 +633,11 @@ class BaseLSSFPN(nn.Module):
             0,
             sweep_imgs[:, 0:1, ...],
             mats_dict,
+            # sensor2ego_mats,
+            # intrin_mats,
+            # ida_mats,
+            # sensor2sensor_mats,
+            # bda_mat,
             is_return_depth=is_return_depth)
         if num_sweeps == 1:
             return key_frame_res
@@ -606,6 +652,11 @@ class BaseLSSFPN(nn.Module):
                     sweep_index,
                     sweep_imgs[:, sweep_index:sweep_index + 1, ...],
                     mats_dict,
+                    # sensor2ego_mats,
+                    # intrin_mats,
+                    # ida_mats,
+                    # sensor2sensor_mats,
+                    # bda_mat,
                     is_return_depth=False)
                 ret_feature_list.append(feature_map)
 

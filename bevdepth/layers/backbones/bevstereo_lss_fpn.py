@@ -15,7 +15,7 @@ from bevdepth.layers.backbones.base_lss_fpn import (ASPP, BaseLSSFPN, Mlp,
 
 try:
     from bevdepth.ops.voxel_pooling_inference import voxel_pooling_inference
-    from bevdepth.ops.voxel_pooling_train import voxel_pooling_train
+    # from bevdepth.ops.voxel_pooling_train import voxel_pooling_train
 except ImportError:
     print('Import VoxelPooling fail.')
 

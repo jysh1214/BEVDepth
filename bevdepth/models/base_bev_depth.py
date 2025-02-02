@@ -109,3 +109,71 @@ class BaseBEVDepth(nn.Module):
             list[dict]: Decoded bbox, scores and labels after nms.
         """
         return self.head.get_bboxes(preds_dicts, img_metas, img, rescale)
+
+
+import torch
+import torch.nn as nn
+from mmdet3d.registry import MODELS
+import torchvision.models as models
+from torch_mlir import torchscript
+
+@MODELS.register_module()
+class ResNet(nn.Module):
+    def __init__(self,
+            depth=50,
+            out_indices=[0, 1, 2, 3],
+            norm_eval=False,
+            init_cfg=dict(type='Pretrained', checkpoint='torchvision://resnet50'),
+            frozen_stages=0,
+    ):
+        super().__init__()
+        self.model = models.resnet50()
+        self.model.eval()
+    def forward(self, x):
+        return self.model(x)
+
+if __name__ == "__main__":
+    backbone = BaseLSSFPN(
+        [-51.2, 51.2, 0.8],
+        [-51.2, 51.2, 0.8],
+        [-5, 3, 8],
+        [2.0, 58.0, 0.5],
+        (256, 704),
+        16,
+        80,
+        {'type': 'ResNet', 'depth': 50, 'frozen_stages': 0, 'out_indices': [0, 1, 2, 3], 'norm_eval': False, 'init_cfg': {'type': 'Pretrained', 'checkpoint': 'torchvision://resnet50'}},
+        {'type': 'SECONDFPN', 'in_channels': [256, 512, 1024, 2048], 'upsample_strides': [0.25, 0.5, 1, 2], 'out_channels': [128, 128, 128, 128]},
+        {'in_channels': 512, 'mid_channels': 512},
+        False,
+    )
+    print(backbone)
+
+    backbone.eval()
+    backbone(
+        torch.randn(1, 2, 6, 3, 256, 704, dtype=torch.float32),
+        {
+            "sensor2ego_mats": torch.randn(1, 2, 6, 4, 4, dtype=torch.float32),
+            "intrin_mats": torch.randn(1, 2, 6, 4, 4, dtype=torch.float32),
+            "ida_mats": torch.randn(1, 2, 6, 4, 4, dtype=torch.float32),
+            "sensor2sensor_mats": torch.randn(1, 2, 6, 4, 4, dtype=torch.float32),
+            "bda_mat": torch.randn(1, 4, 4, dtype=torch.float32),
+        },
+        None,
+        False,
+    )
+    # backbone_mlir_model = torchscript.compile(
+    #     backbone,
+    #     [
+    #         torch.randn(1, 2, 6, 3, 256, 704, dtype=torch.float32),
+    #         torch.randn(1, 2, 6, 4, 4, dtype=torch.float32),
+    #         torch.randn(1, 2, 6, 4, 4, dtype=torch.float32),
+    #         torch.randn(1, 2, 6, 4, 4, dtype=torch.float32),
+    #         torch.randn(1, 2, 6, 4, 4, dtype=torch.float32),
+    #         torch.randn(1, 4, 4, dtype=torch.float32),
+    #         # None,
+    #         # False,
+    #     ],
+    #     output_type="linalg-on-tensors",
+    #     use_tracing=True,
+    # )
+    # save_model(backbone_mlir_model, "BaseLSSFPN.mlirbc")

@@ -37,21 +37,21 @@ class VoxelPoolingInference(Function):
         num_channels = context_features.shape[1]
         output_features = depth_features.new_zeros(
             (batch_size, voxel_num[1], voxel_num[0], num_channels))
-        voxel_pooling_inference_ext.voxel_pooling_inference_forward_wrapper(
-            batch_size,
-            num_cams,
-            num_depth,
-            num_height,
-            num_width,
-            num_channels,
-            voxel_num[0],
-            voxel_num[1],
-            voxel_num[2],
-            geom_xyz,
-            depth_features,
-            context_features,
-            output_features,
-        )
+        # voxel_pooling_inference_ext.voxel_pooling_inference_forward_wrapper(
+        #     batch_size,
+        #     num_cams,
+        #     num_depth,
+        #     num_height,
+        #     num_width,
+        #     num_channels,
+        #     voxel_num[0],
+        #     voxel_num[1],
+        #     voxel_num[2],
+        #     geom_xyz,
+        #     depth_features,
+        #     context_features,
+        #     output_features,
+        # )
         return output_features.permute(0, 3, 1, 2)
 
 

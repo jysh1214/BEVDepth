@@ -3,7 +3,7 @@ import os
 import mmcv
 import numpy as np
 import torch
-from mmdet3d.core.bbox.structures.lidar_box3d import LiDARInstance3DBoxes
+from mmdet3d.structures.bbox_3d.lidar_box3d import LiDARInstance3DBoxes
 from nuscenes.utils.data_classes import Box, LidarPointCloud
 from nuscenes.utils.geometry_utils import view_points
 from PIL import Image
