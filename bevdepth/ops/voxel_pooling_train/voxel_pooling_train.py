@@ -2,7 +2,43 @@
 import torch
 from torch.autograd import Function
 
-from . import voxel_pooling_train_ext
+torch.ops.load_library(
+    "/home/BEVDepth/bevdepth/ops/voxel_pooling_train/voxel_pooling_train_ext.cpython-39-x86_64-linux-gnu.so"
+)
+
+
+def _voxel_pooling_train_forward_wrapper(
+    g,
+    batch_size,
+    num_points,
+    num_channels,
+    num_voxel_x,
+    num_voxel_y,
+    num_voxel_z,
+    geom_xyz_tensor,
+    input_features_tensor,
+    output_features_tensor,
+    pos_memo_tensor,
+):
+    return g.op(
+        "customop::voxel_pooling_train_forward_wrapper",
+        batch_size,
+        num_points,
+        num_channels,
+        num_voxel_x,
+        num_voxel_y,
+        num_voxel_z,
+        geom_xyz_tensor,
+        input_features_tensor,
+        output_features_tensor,
+        pos_memo_tensor,
+    )
+
+
+from torch.onnx import register_custom_op_symbolic
+register_custom_op_symbolic(
+    "customop::voxel_pooling_train_forward_wrapper",
+    _voxel_pooling_train_forward_wrapper, 11)
 
 
 class VoxelPoolingTrain(Function):
@@ -39,7 +75,7 @@ class VoxelPoolingTrain(Function):
                                                    voxel_num[0], num_channels)
         # Save the position of bev_feature_map for each input point.
         pos_memo = geom_xyz.new_ones(batch_size, num_points, 3) * -1
-        voxel_pooling_train_ext.voxel_pooling_train_forward_wrapper(
+        torch.ops.customop.voxel_pooling_train_forward_wrapper(
             batch_size,
             num_points,
             num_channels,

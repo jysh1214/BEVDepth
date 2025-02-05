@@ -2,10 +2,68 @@
 import torch
 from torch.autograd import Function
 
-from . import voxel_pooling_inference_ext
+torch.ops.load_library(
+    "/home/BEVDepth/bevdepth/ops/voxel_pooling_inference/voxel_pooling_inference_ext.cpython-39-x86_64-linux-gnu.so"
+)
+
+
+# def _voxel_pooling_inference_forward_wrapper(
+#     g,
+#     batch_size,
+#     num_cams,
+#     num_depth,
+#     num_height,
+#     num_width,
+#     num_channels,
+#     num_voxel_x,
+#     num_voxel_y,
+#     num_voxel_z,
+#     geom_xyz_tensor,
+#     depth_features_tensor,
+#     context_features_tensor,
+#     output_features_tensor,
+# ):
+#     return g.op(
+#         "customop::voxel_pooling_inference_forward_wrapper",
+#         batch_size,
+#         num_cams,
+#         num_depth,
+#         num_height,
+#         num_width,
+#         num_channels,
+#         num_voxel_x,
+#         num_voxel_y,
+#         num_voxel_z,
+#         geom_xyz_tensor,
+#         depth_features_tensor,
+#         context_features_tensor,
+#         output_features_tensor,
+#     )
+
+
+# from torch.onnx import register_custom_op_symbolic
+# register_custom_op_symbolic(
+#     "customop::voxel_pooling_inference_forward_wrapper",
+#     _voxel_pooling_inference_forward_wrapper, 11)
 
 
 class VoxelPoolingInference(Function):
+
+    @staticmethod
+    def symbolic(
+        g,
+        geom_xyz,
+        depth_features,
+        context_features,
+        voxel_num,
+    ):
+        return g.op(
+            "customop::VoxelPoolingInference",
+            geom_xyz,
+            depth_features,
+            context_features,
+            voxel_num,
+        )
 
     @staticmethod
     def forward(ctx, geom_xyz: torch.Tensor, depth_features: torch.Tensor,
@@ -37,7 +95,7 @@ class VoxelPoolingInference(Function):
         num_channels = context_features.shape[1]
         output_features = depth_features.new_zeros(
             (batch_size, voxel_num[1], voxel_num[0], num_channels))
-        voxel_pooling_inference_ext.voxel_pooling_inference_forward_wrapper(
+        torch.ops.customop.voxel_pooling_inference_forward_wrapper(
             batch_size,
             num_cams,
             num_depth,
@@ -56,3 +114,56 @@ class VoxelPoolingInference(Function):
 
 
 voxel_pooling_inference = VoxelPoolingInference.apply
+
+
+# class VoxelPoolingInference(torch.nn.Module):
+
+#     @staticmethod
+#     def forward(geom_xyz: torch.Tensor, depth_features: torch.Tensor,
+#                 context_features: torch.Tensor,
+#                 voxel_num: torch.Tensor) -> torch.Tensor:
+#         """Forward function for `voxel pooling.
+
+#         Args:
+#             geom_xyz (Tensor): xyz coord for each voxel with the shape
+#                 of [B, N, 3].
+#             input_features (Tensor): feature for each voxel with the
+#                 shape of [B, N, C].
+#             voxel_num (Tensor): Number of voxels for each dim with the
+#                 shape of [3].
+
+#         Returns:
+#             Tensor: (B, C, H, W) bev feature map.
+#         """
+#         assert geom_xyz.is_contiguous()
+#         assert depth_features.is_contiguous()
+#         assert context_features.is_contiguous()
+#         # no gradient for input_features and geom_feats
+#         # ctx.mark_non_differentiable(geom_xyz)
+#         batch_size = geom_xyz.shape[0]
+#         num_cams = geom_xyz.shape[1]
+#         num_depth = geom_xyz.shape[2]
+#         num_height = geom_xyz.shape[3]
+#         num_width = geom_xyz.shape[4]
+#         num_channels = context_features.shape[1]
+#         output_features = depth_features.new_zeros(
+#             (batch_size, voxel_num[1], voxel_num[0], num_channels))
+#         torch.ops.customop.voxel_pooling_inference_forward_wrapper(
+#             batch_size,
+#             num_cams,
+#             num_depth,
+#             num_height,
+#             num_width,
+#             num_channels,
+#             voxel_num[0],
+#             voxel_num[1],
+#             voxel_num[2],
+#             geom_xyz,
+#             depth_features,
+#             context_features,
+#             output_features,
+#         )
+#         return output_features.permute(0, 3, 1, 2)
+
+
+# voxel_pooling_inference = VoxelPoolingInference()
