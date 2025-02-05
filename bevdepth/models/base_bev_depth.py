@@ -26,32 +26,40 @@ class BaseBEVDepth(nn.Module):
     def forward(
         self,
         x,
-        mats_dict,
-        timestamps=None,
+        sensor2ego_mats,
+        intrin_mats,
+        ida_mats,
+        sensor2sensor_mats,
+        bda_mat,
     ):
         """Forward function for BEVDepth
 
         Args:
             x (Tensor): Input ferature map.
-            mats_dict(dict):
-                sensor2ego_mats(Tensor): Transformation matrix from
-                    camera to ego with shape of (B, num_sweeps,
-                    num_cameras, 4, 4).
-                intrin_mats(Tensor): Intrinsic matrix with shape
-                    of (B, num_sweeps, num_cameras, 4, 4).
-                ida_mats(Tensor): Transformation matrix for ida with
-                    shape of (B, num_sweeps, num_cameras, 4, 4).
-                sensor2sensor_mats(Tensor): Transformation matrix
-                    from key frame camera to sweep frame camera with
-                    shape of (B, num_sweeps, num_cameras, 4, 4).
-                bda_mat(Tensor): Rotation matrix for bda with shape
-                    of (B, 4, 4).
-            timestamps (long): Timestamp.
-                Default: None.
+            sensor2ego_mats(Tensor): Transformation matrix from
+                camera to ego with shape of (B, num_sweeps,
+                num_cameras, 4, 4).
+            intrin_mats(Tensor): Intrinsic matrix with shape
+                of (B, num_sweeps, num_cameras, 4, 4).
+            ida_mats(Tensor): Transformation matrix for ida with
+                shape of (B, num_sweeps, num_cameras, 4, 4).
+            sensor2sensor_mats(Tensor): Transformation matrix
+                from key frame camera to sweep frame camera with
+                shape of (B, num_sweeps, num_cameras, 4, 4).
+            bda_mat(Tensor): Rotation matrix for bda with shape
+                of (B, 4, 4).
 
         Returns:
             tuple(list[dict]): Output results for tasks.
         """
+        timestamps = None
+        mats_dict = {
+            "sensor2ego_mats": sensor2ego_mats,
+            "intrin_mats": intrin_mats,
+            "ida_mats": ida_mats,
+            "sensor2sensor_mats": sensor2sensor_mats,
+            "bda_mat": bda_mat,
+        }
         if self.is_train_depth and self.training:
             x, depth_pred = self.backbone(x,
                                           mats_dict,

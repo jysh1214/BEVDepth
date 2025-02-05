@@ -320,7 +320,14 @@ class BEVDepthLightningModel(LightningModule):
             for key, value in mats.items():
                 mats[key] = value.cuda()
             sweep_imgs = sweep_imgs.cuda()
-        preds = self.model(sweep_imgs, mats)
+        preds = self.model(
+            sweep_imgs,
+            mats["sensor2ego_mats"],
+            mats["intrin_mats"],
+            mats["ida_mats"],
+            mats["sensor2sensor_mats"],
+            mats["bda_mat"],
+        )
         if isinstance(self.model, torch.nn.parallel.DistributedDataParallel):
             results = self.model.module.get_bboxes(preds, img_metas)
         else:
