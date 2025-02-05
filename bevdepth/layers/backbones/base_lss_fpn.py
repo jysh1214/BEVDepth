@@ -6,7 +6,6 @@ from mmdet3d.models import build_neck
 from mmdet.models import build_backbone
 from mmdet.models.backbones.resnet import BasicBlock
 from torch import nn
-from torch.cuda.amp.autocast_mode import autocast
 
 try:
     from bevdepth.ops.voxel_pooling_inference import voxel_pooling_inference
@@ -304,7 +303,6 @@ class DepthAggregation(nn.Module):
             # nn.ReLU(inplace=True),
         )
 
-    @autocast(False)
     def forward(self, x):
         x = self.reduce_conv(x)
         x = self.conv(x) + x
@@ -441,13 +439,13 @@ class BaseLSSFPN(nn.Module):
         # B x N x D x H x W x 3
         points = self.frustum
         ida_mat = ida_mat.view(batch_size, num_cams, 1, 1, 1, 4, 4)
-        points = (ida_mat.cpu().inverse().cuda()).matmul(points.unsqueeze(-1))
+        points = (ida_mat.cpu().inverse()).matmul(points.unsqueeze(-1))
         # cam_to_ego
         points = torch.cat(
             (points[:, :, :, :, :, :2] * points[:, :, :, :, :, 2:3],
              points[:, :, :, :, :, 2:]), 5)
 
-        combine = sensor2ego_mat.matmul(torch.inverse(intrin_mat.cpu()).cuda())
+        combine = sensor2ego_mat.matmul(torch.inverse(intrin_mat.cpu()))
         points = combine.view(batch_size, num_cams, 1, 1, 1, 4,
                               4).matmul(points)
         if bda_mat is not None:
@@ -543,12 +541,12 @@ class BaseLSSFPN(nn.Module):
 
             feature_map = voxel_pooling_train(geom_xyz,
                                               img_feat_with_depth.contiguous(),
-                                              self.voxel_num.cuda())
+                                              self.voxel_num)
         else:
             feature_map = voxel_pooling_inference(
                 geom_xyz, depth, depth_feature[:, self.depth_channels:(
                     self.depth_channels + self.output_channels)].contiguous(),
-                self.voxel_num.cuda())
+                self.voxel_num)
         if is_return_depth:
             # final_depth has to be fp32, otherwise the depth
             # loss will colapse during the traing process.

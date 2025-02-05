@@ -36,12 +36,12 @@ def run_cli(model_class=BEVDepthLightningModel,
     parser.set_defaults(profiler='simple',
                         deterministic=False,
                         max_epochs=extra_trainer_config_args.get('epochs', 24),
-                        accelerator='ddp',
+                        accelerator='cpu',
                         num_sanity_val_steps=0,
                         gradient_clip_val=5,
                         limit_val_batches=0,
                         enable_checkpointing=True,
-                        precision=16,
+                        precision=32,
                         default_root_dir=os.path.join('./outputs/', exp_name))
     args = parser.parse_args()
     if args.seed is not None:
