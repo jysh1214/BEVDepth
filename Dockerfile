@@ -4,13 +4,13 @@
 #   - v1.0-mini.tgz
 #
 # Build the docker image:
-#   docker build -t bevdepth_image .
+#   docker build -t bevdepth_image_py39_cuda .
 #
 # Run the container:
-#   docker run --name bevdepth_container --shm-size 64gb --gpus all --mount src=$PWD,target=/home/BEVDepth,type=bind -it bevdepth_image /bin/bash
+#   docker run --name bevdepth_container_py39_cuda --shm-size 64gb --gpus all --mount src=$PWD,target=/home/BEVDepth,type=bind -it bevdepth_image_py39_cuda /bin/bash
 #
 # Attach the container:
-#   docker container attach bevdepth_container
+#   docker container attach bevdepth_container_py39_cuda
 
 FROM nvidia/cuda:11.8.0-devel-ubuntu22.04
 
@@ -95,9 +95,6 @@ CMD ["/bin/sh"]
 # 
 # vim /home/pyvenv/lib/python3.9/site-packages/networkx/algorithms/dag.py:23
 # Change 'from fractions import gcd' to 'from math import gcd'
-#
-# vim /home/pyvenv/lib/python3.9/site-packages/pytorch_lightning/trainer/connectors/accelerator_connector.py:284
-# Add 'accelerator = "gpu"'
 
 # Download weights:
 #   wget https://github.com/Megvii-BaseDetection/BEVDepth/releases/download/v0.0.2/bev_depth_lss_r50_256x704_128x128_24e_2key.pth
