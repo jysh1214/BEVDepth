@@ -75,9 +75,9 @@ CMD ["/bin/sh"]
 # Install mmcv.
 # ENV MMCV_ROOT="/home/mmcv"
 # WORKDIR /home
-# RUN git clone https://github.com/open-mmlab/mmcv.git
+# RUN git clone https://github.com/jysh1214/mmcv.git
 # WORKDIR $MMCV_ROOT
-# RUN git checkout v1.7.0
+# RUN git checkout v1.7.0-py39-cpu
 # RUN MMCV_WITH_OPS=1 pip install -e . -v
 
 # Build BEVDepth:
