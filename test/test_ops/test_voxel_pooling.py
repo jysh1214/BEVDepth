@@ -29,10 +29,10 @@ class TestLSSFPN(unittest.TestCase):
                 if x < 0 or x >= 128 or y < 0 or y >= 128 or z < 0 or z >= 1:
                     continue
                 gt_bev_featuremap[i, y, x, :] += gt_features[i, j, :]
-        gt_bev_featuremap = gt_bev_featuremap.permute(0, 3, 1, 2).cuda()
+        gt_bev_featuremap = gt_bev_featuremap.permute(0, 3, 1, 2)
         bev_featuremap = voxel_pooling_train(
-            geom_xyz.cuda().int(), features.cuda(),
-            torch.tensor([128, 128, 1], dtype=torch.int, device='cuda'))
-        assert torch.allclose(gt_bev_featuremap.cuda(),
+            geom_xyz.int(), features,
+            torch.tensor([128, 128, 1], dtype=torch.int, device='cpu'))
+        assert torch.allclose(gt_bev_featuremap,
                               bev_featuremap,
                               rtol=1e-3)

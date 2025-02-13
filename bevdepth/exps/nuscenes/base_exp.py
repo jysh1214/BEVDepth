@@ -240,12 +240,6 @@ class BEVDepthLightningModel(LightningModule):
 
     def training_step(self, batch):
         (sweep_imgs, mats, _, _, gt_boxes, gt_labels, depth_labels) = batch
-        if torch.cuda.is_available():
-            for key, value in mats.items():
-                mats[key] = value.cuda()
-            sweep_imgs = sweep_imgs.cuda()
-            gt_boxes = [gt_box.cuda() for gt_box in gt_boxes]
-            gt_labels = [gt_label.cuda() for gt_label in gt_labels]
         preds, depth_preds = self(sweep_imgs, mats)
         if isinstance(self.model, torch.nn.parallel.DistributedDataParallel):
             targets = self.model.module.get_targets(gt_boxes, gt_labels)
@@ -257,7 +251,7 @@ class BEVDepthLightningModel(LightningModule):
         if len(depth_labels.shape) == 5:
             # only key-frame will calculate depth loss
             depth_labels = depth_labels[:, 0, ...]
-        depth_loss = self.get_depth_loss(depth_labels.cuda(), depth_preds)
+        depth_loss = self.get_depth_loss(depth_labels, depth_preds)
         self.log('detection_loss', detection_loss)
         self.log('depth_loss', depth_loss)
         return detection_loss + depth_loss
@@ -316,10 +310,6 @@ class BEVDepthLightningModel(LightningModule):
 
     def eval_step(self, batch, batch_idx, prefix: str):
         (sweep_imgs, mats, _, img_metas, _, _) = batch
-        if torch.cuda.is_available():
-            for key, value in mats.items():
-                mats[key] = value.cuda()
-            sweep_imgs = sweep_imgs.cuda()
         preds = self.model(
             sweep_imgs,
             mats["sensor2ego_mats"],

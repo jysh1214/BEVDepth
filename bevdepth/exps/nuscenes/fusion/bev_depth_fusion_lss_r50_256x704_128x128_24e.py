@@ -24,12 +24,6 @@ class BEVDepthLightningModel(BaseBEVDepthLightningModel):
 
     def training_step(self, batch):
         (sweep_imgs, mats, _, _, gt_boxes, gt_labels, lidar_depth) = batch
-        if torch.cuda.is_available():
-            for key, value in mats.items():
-                mats[key] = value.cuda()
-            sweep_imgs = sweep_imgs.cuda()
-            gt_boxes = [gt_box.cuda() for gt_box in gt_boxes]
-            gt_labels = [gt_label.cuda() for gt_label in gt_labels]
         preds = self(sweep_imgs, mats, lidar_depth)
         if isinstance(self.model, torch.nn.parallel.DistributedDataParallel):
             targets = self.model.module.get_targets(gt_boxes, gt_labels)
@@ -46,10 +40,6 @@ class BEVDepthLightningModel(BaseBEVDepthLightningModel):
 
     def eval_step(self, batch, batch_idx, prefix: str):
         (sweep_imgs, mats, _, img_metas, _, _, lidar_depth) = batch
-        if torch.cuda.is_available():
-            for key, value in mats.items():
-                mats[key] = value.cuda()
-            sweep_imgs = sweep_imgs.cuda()
         preds = self.model(sweep_imgs, mats, lidar_depth)
         if isinstance(self.model, torch.nn.parallel.DistributedDataParallel):
             results = self.model.module.get_bboxes(preds, img_metas)

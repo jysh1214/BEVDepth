@@ -184,7 +184,7 @@ class DepthNet(nn.Module):
         mono_depth = self.mono_depth_net(depth_feat)
         mu_sigma_score = self.mu_sigma_range_net(depth_feat)
         d_coords = torch.arange(*self.d_bound,
-                                dtype=torch.float).reshape(1, -1, 1, 1).cuda()
+                                dtype=torch.float).reshape(1, -1, 1, 1)
         d_coords = d_coords.repeat(B, 1, H, W)
         mu = mu_sigma_score[:, 0:self.num_ranges, ...]
         sigma = mu_sigma_score[:, self.num_ranges:2 * self.num_ranges, ...]
@@ -429,14 +429,14 @@ class BEVStereoLSSFPN(BaseLSSFPN):
             # Undo ida for key frame.
             points = (key_ida_mats.reshape(batch_size_with_num_cams, *
                                           key_ida_mats.shape[2:]).cpu().inverse(
-                                          ).cuda()).unsqueeze(1) @ points.unsqueeze(-1)
+                                          )).unsqueeze(1) @ points.unsqueeze(-1)
             # Convert points from pixel coord to key camera coord.
             points[..., :3, :] *= depth_sample.reshape(
                 batch_size_with_num_cams, -1, 1, 1)
             num_depth = frustum.shape[1]
             points = (((key_intrin_mats.reshape(
                 batch_size_with_num_cams, *
-                key_intrin_mats.shape[2:]).cpu().inverse()).cuda()).unsqueeze(1) @ points)
+                key_intrin_mats.shape[2:]).cpu().inverse())).unsqueeze(1) @ points)
             points = (sensor2sensor_mats.reshape(
                 batch_size_with_num_cams, *
                 sensor2sensor_mats.shape[2:]).unsqueeze(1) @ points)
@@ -795,11 +795,11 @@ class BEVStereoLSSFPN(BaseLSSFPN):
 
             feature_map = voxel_pooling_train(geom_xyz,
                                               img_feat_with_depth.contiguous(),
-                                              self.voxel_num.cuda())
+                                              self.voxel_num)
         else:
             feature_map = voxel_pooling_inference(geom_xyz, depth.contiguous(),
                                                   context.contiguous(),
-                                                  self.voxel_num.cuda())
+                                                  self.voxel_num)
         if is_return_depth:
             return feature_map.contiguous(), depth
         return feature_map.contiguous()
@@ -883,7 +883,7 @@ class BEVStereoLSSFPN(BaseLSSFPN):
             sensor2sensor_mats = list()
             for src_idx in range(num_sweeps):
                 ref2keysensor_mats = (mats_dict[
-                    'sensor2sensor_mats'][:, ref_idx, ...].cpu().inverse()).cuda()
+                    'sensor2sensor_mats'][:, ref_idx, ...].cpu().inverse())
                 key2srcsensor_mats = mats_dict['sensor2sensor_mats'][:,
                                                                      src_idx,
                                                                      ...]

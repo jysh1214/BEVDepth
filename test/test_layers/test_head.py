@@ -95,12 +95,12 @@ class TestLSSFPN(unittest.TestCase):
             'gaussian_overlap': 0.1,
             'min_radius': 2,
         }
-        self.bevdet_head = BEVDepthHead(**head_conf).cuda()
+        self.bevdet_head = BEVDepthHead(**head_conf)
 
     @pytest.mark.skipif(torch.cuda.is_available() is False,
                         reason='No gpu available.')
     def test_forward(self):
-        x = torch.rand(2, 10, 32, 32).cuda()
+        x = torch.rand(2, 10, 32, 32)
         ret_results = self.bevdet_head.forward(x)
         assert len(ret_results) == 6
         assert ret_results[0][0]['reg'].shape == torch.Size([2, 2, 32, 32])
@@ -113,12 +113,12 @@ class TestLSSFPN(unittest.TestCase):
     @pytest.mark.skipif(torch.cuda.is_available() is False,
                         reason='No gpu available.')
     def test_get_targets(self):
-        gt_boxes_3d_0 = torch.rand(10, 9).cuda()
-        gt_boxes_3d_1 = torch.rand(15, 9).cuda()
+        gt_boxes_3d_0 = torch.rand(10, 9)
+        gt_boxes_3d_1 = torch.rand(15, 9)
         gt_boxes_3d_0[:, :2] *= 10
         gt_boxes_3d_1[:, :2] *= 10
-        gt_labels_3d_0 = torch.randint(0, 10, (10, )).cuda()
-        gt_labels_3d_1 = torch.randint(0, 10, (15, )).cuda()
+        gt_labels_3d_0 = torch.randint(0, 10, (10, ))
+        gt_labels_3d_1 = torch.randint(0, 10, (15, ))
         gt_boxes_3d = [gt_boxes_3d_0, gt_boxes_3d_1]
         gt_labels_3d = [gt_labels_3d_0, gt_labels_3d_1]
         heatmaps, anno_boxes, inds, masks = self.bevdet_head.get_targets(
@@ -135,7 +135,7 @@ class TestLSSFPN(unittest.TestCase):
     @pytest.mark.skipif(torch.cuda.is_available() is False,
                         reason='No gpu available.')
     def test_get_bboxes(self):
-        x = torch.rand(2, 10, 32, 32).cuda()
+        x = torch.rand(2, 10, 32, 32)
         ret_results = self.bevdet_head.forward(x)
         img_metas = [
             dict(box_type_3d=LiDARInstance3DBoxes),

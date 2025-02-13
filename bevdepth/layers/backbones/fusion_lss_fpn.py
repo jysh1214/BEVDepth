@@ -158,12 +158,12 @@ class FusionLSSFPN(BaseLSSFPN):
 
             feature_map = voxel_pooling_train(geom_xyz,
                                               img_feat_with_depth.contiguous(),
-                                              self.voxel_num.cuda())
+                                              self.voxel_num)
         else:
             feature_map = voxel_pooling_inference(
                 geom_xyz, depth, depth_feature[:, self.depth_channels:(
                     self.depth_channels + self.output_channels)].contiguous(),
-                self.voxel_num.cuda())
+                self.voxel_num)
         if is_return_depth:
             return feature_map.contiguous(), depth.float()
         return feature_map.contiguous()

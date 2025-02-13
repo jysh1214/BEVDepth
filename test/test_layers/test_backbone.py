@@ -36,17 +36,17 @@ class TestLSSFPN(unittest.TestCase):
             'depth_net_conf':
             dict(in_channels=64, mid_channels=64),
         }
-        self.lss_fpn = BaseLSSFPN(**backbone_conf).cuda()
+        self.lss_fpn = BaseLSSFPN(**backbone_conf)
 
     @pytest.mark.skipif(torch.cuda.is_available() is False,
                         reason='No gpu available.')
     def test_forward(self):
-        sweep_imgs = torch.rand(2, 2, 6, 3, 64, 64).cuda()
-        sensor2ego_mats = torch.rand(2, 2, 6, 4, 4).cuda()
-        intrin_mats = torch.rand(2, 2, 6, 4, 4).cuda()
-        ida_mats = torch.rand(2, 2, 6, 4, 4).cuda()
-        sensor2sensor_mats = torch.rand(2, 2, 6, 4, 4).cuda()
-        bda_mat = torch.rand(2, 4, 4).cuda()
+        sweep_imgs = torch.rand(2, 2, 6, 3, 64, 64)
+        sensor2ego_mats = torch.rand(2, 2, 6, 4, 4)
+        intrin_mats = torch.rand(2, 2, 6, 4, 4)
+        ida_mats = torch.rand(2, 2, 6, 4, 4)
+        sensor2sensor_mats = torch.rand(2, 2, 6, 4, 4)
+        bda_mat = torch.rand(2, 4, 4)
         mats_dict = dict()
         mats_dict['sensor2ego_mats'] = sensor2ego_mats
         mats_dict['intrin_mats'] = intrin_mats
