@@ -546,7 +546,7 @@ class BaseLSSFPN(nn.Module):
             feature_map = voxel_pooling_inference(
                 geom_xyz, depth, depth_feature[:, self.depth_channels:(
                     self.depth_channels + self.output_channels)].contiguous(),
-                self.voxel_num)
+                self.voxel_num).permute(0, 3, 1, 2)
         if is_return_depth:
             # final_depth has to be fp32, otherwise the depth
             # loss will colapse during the traing process.

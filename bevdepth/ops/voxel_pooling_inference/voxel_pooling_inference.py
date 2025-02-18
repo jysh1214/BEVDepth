@@ -64,7 +64,7 @@ class VoxelPoolingInference(Function):
             depth_features,
             context_features,
             output_features,
-        ).permute(0, 3, 1, 2)
+        )
 
 
 voxel_pooling_inference = VoxelPoolingInference.apply
